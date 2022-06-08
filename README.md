@@ -24,7 +24,8 @@ from sklearn.metrics import jaccard_score
 
 ## Loan_train.csv
 
-!wget -O loan_train.csv htps://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-ML0101EN-SkillsNetwork/labs/FinalModule_Coursera/data/loan_train.csv
+!wget -O loan_test.csv https://s3-api.us-geo.objectstorage.softlayer.net/cf-courses-data/CognitiveClass/ML0101ENv3/labs/loan_test.csv
+
 df = pd.read_csv('loan_train.csv')
 df.head()
 df.shape

@@ -1,5 +1,5 @@
 ### MIGUEL GONZALEZ
-# import requests
+# Import requests
 
 from bs4 import BeautifulSoup
 import pandas as pd

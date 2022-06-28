@@ -75,8 +75,11 @@ df=pd.DataFrame(launch_dict)
 df.to_csv('spacex_web_scraped.csv', index=False)
 ```
 
-## Contributing
-
+## Load Data From CSV File
+``` 
+df = pd.read_csv('spacex_web_scraped.csv')
+df.head() 
+```
 
 ## License
 

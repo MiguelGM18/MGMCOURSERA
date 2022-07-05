@@ -142,3 +142,67 @@ df.head(5)
 df["Class"].mean()
 df.to_csv("dataset_part_2.csv", index=False)
 ```
+
+## SpaceX Falcon 9 First Stage Landing Prediction
+
+# we will predict if the Falcon 9 first stage will land successfully. SpaceX advertises Falcon 9 rocket launches on its website with a cost of 62 million dollars; other providers cost upward of 165 million dollars each, much of the savings is due to the fact that SpaceX can reuse the first stage.
+
+```
+# We will import the following libraries the lab
+import matplotlib.pyplot as plt
+import seaborn as sns
+df=pd.read_csv("dataset_part_2.csv")
+df.head(5)
+```
+
+# First, let's try to see how the FlightNumber (indicating the continuous launch attempts.) and Payload variables would affect the launch outcome.
+
+# We can plot out the FlightNumber vs. PayloadMassand overlay the outcome of the launch. We see that as the flight number increases, the first stage is more likely to land successfully. The payload mass is also important; it seems the more massive the payload, the less likely the first stage will return.
+
+```
+sns.catplot(y="PayloadMass", x="FlightNumber", hue="Class", data=df, aspect = 5)
+plt.xlabel("Flight Number",fontsize=20)
+plt.ylabel("Pay load Mass (kg)",fontsize=20)
+plt.show()
+```
+
+# We see that different launch sites have different success rates. CCAFS LC-40, has a success rate of 60 %, while KSC LC-39A and VAFB SLC 4E has a success rate of 77%.
+
+```
+# Plot a scatter point chart with x axis to be Flight Number and y axis to be the launch site, and hue to be the class value
+sns.catplot(y="LaunchSite", x="FlightNumber", hue="Class", data=df, aspect = 5)
+
+##  Visualize the relationship between Flight Number and Launch Site
+# Plot a scatter point chart with x axis to be Pay Load Mass (kg) and y axis to be the launch site, and hue to be the class value
+sns.catplot(y="LaunchSite", x="PayloadMass", hue="Class", data=df, aspect = 5)
+
+## Next, we want to visually check if there are any relationship between success rate and orbit type.
+# HINT use groupby method on Orbit column and get the mean of Class column
+df.groupby("Orbit")["Class"].mean().plot(kind= 'bar', legend= 'reverse')
+
+## For each orbit, we want to see if there is any relationship between FlightNumber and Orbit type.
+# Plot a scatter point chart with x axis to be FlightNumber and y axis to be the Orbit, and hue to be the class value
+sns.catplot(y="FlightNumber", x="Orbit", hue="Class", data=df, aspect = 5)
+
+## Visualize the relationship between Payload and Orbit type
+# Plot a scatter point chart with x axis to be Payload and y axis to be the Orbit, and hue to be the class value
+sns.catplot(y="PayloadMass", x="Orbit", hue="Class", data=df, aspect = 5)
+
+## You can plot a line chart with x axis to be Year and y axis to be average success rate, to get the average launch success trend.
+# Plot a line chart with x axis to be the extracted year and y axis to be the success rate
+df.groupby(("Date"))["Class"].mean().plot(kind= 'bar', legend= 'reverse')
+
+## By now, you should obtain some preliminary insights about how each important variable would affect the success rate, we will select the features that will be used in success prediction in the future module.
+features = df[['FlightNumber', 'PayloadMass', 'Orbit', 'LaunchSite', 'Flights', 'GridFins', 'Reused', 'Legs', 'LandingPad', 'Block', 'ReusedCount', 'Serial']]
+features.head()
+
+## Create dummy variables to categorical columns
+# HINT: Use get_dummies() function on the categorical columns
+features_one_hot = pd.get_dummies(features["Orbits","LaunchSite","LandingPad","Serial"], axis = ["Orbits","LaunchSite","LandingPad","Serial"])
+
+## Cast all numeric columns to float64
+# HINT: use astype function
+features_one_hot = float(features_one_hot.astype)
+
+features_one_hot.to_csv('dataset_part_3.csv', index=False)
+```

@@ -1,5 +1,13 @@
 ### MIGUEL GONZALEZ
 
+## here the titles to make your search easier
+### *** Web Scrapping
+### *** Lab 1: Collecting the data
+### *** Lab 2: Data wrangling
+### *** Assignment: Exploring and Preparing Data
+### *** Build a Dashboard Application with Plotly Dash
+### *** Assignment: Machine Learning Prediction
+
 ### Web Scrapping
 ## Import requests
 
@@ -510,9 +518,9 @@ df.to_csv("dataset_part_2.csv", index=False)
 
 ### Assignment: Exploring and Preparing Data
 
-# First, let's try to see how the FlightNumber (indicating the continuous launch attempts.) and Payload variables would affect the launch outcome.
+#First, let's try to see how the FlightNumber (indicating the continuous launch attempts.) and Payload variables would affect the launch outcome.
 
-# We can plot out the FlightNumber vs. PayloadMassand overlay the outcome of the launch. We see that as the flight number increases, the first stage is more likely to land successfully. The payload mass is also important; it seems the more massive the payload, the less likely the first stage will return.
+#We can plot out the FlightNumber vs. PayloadMassand overlay the outcome of the launch. We see that as the flight number increases, the first stage is more likely to land successfully. The payload mass is also important; it seems the more massive the payload, the less likely the first stage will return.**
 
 ```
 sns.catplot(y="PayloadMass", x="FlightNumber", hue="Class", data=df, aspect = 5)
@@ -521,44 +529,419 @@ plt.ylabel("Pay load Mass (kg)",fontsize=20)
 plt.show()
 ```
 
-# We see that different launch sites have different success rates. CCAFS LC-40, has a success rate of 60 %, while KSC LC-39A and VAFB SLC 4E has a success rate of 77%.
+#We see that different launch sites have different success rates. CCAFS LC-40, has a success rate of 60 %, while KSC LC-39A and VAFB SLC 4E has a success rate of 77%.
 
 ```
-# Plot a scatter point chart with x axis to be Flight Number and y axis to be the launch site, and hue to be the class value
+#Plot a scatter point chart with x axis to be Flight Number and y axis to be the launch site, and hue to be the class value
 sns.catplot(y="LaunchSite", x="FlightNumber", hue="Class", data=df, aspect = 5)
 
-##  Visualize the relationship between Flight Number and Launch Site
-# Plot a scatter point chart with x axis to be Pay Load Mass (kg) and y axis to be the launch site, and hue to be the class value
+##Visualize the relationship between Flight Number and Launch Site
+#Plot a scatter point chart with x axis to be Pay Load Mass (kg) and y axis to be the launch site, and hue to be the class value
 sns.catplot(y="LaunchSite", x="PayloadMass", hue="Class", data=df, aspect = 5)
 
-## Next, we want to visually check if there are any relationship between success rate and orbit type.
-# HINT use groupby method on Orbit column and get the mean of Class column
+##Next, we want to visually check if there are any relationship between success rate and orbit type.
+#HINT use groupby method on Orbit column and get the mean of Class column
 df.groupby("Orbit")["Class"].mean().plot(kind= 'bar', legend= 'reverse')
 
-## For each orbit, we want to see if there is any relationship between FlightNumber and Orbit type.
-# Plot a scatter point chart with x axis to be FlightNumber and y axis to be the Orbit, and hue to be the class value
+##For each orbit, we want to see if there is any relationship between FlightNumber and Orbit type.
+#Plot a scatter point chart with x axis to be FlightNumber and y axis to be the Orbit, and hue to be the class value
 sns.catplot(y="FlightNumber", x="Orbit", hue="Class", data=df, aspect = 5)
 
-## Visualize the relationship between Payload and Orbit type
-# Plot a scatter point chart with x axis to be Payload and y axis to be the Orbit, and hue to be the class value
+##Visualize the relationship between Payload and Orbit type
+#Plot a scatter point chart with x axis to be Payload and y axis to be the Orbit, and hue to be the class value
 sns.catplot(y="PayloadMass", x="Orbit", hue="Class", data=df, aspect = 5)
 
-## You can plot a line chart with x axis to be Year and y axis to be average success rate, to get the average launch success trend.
+##You can plot a line chart with x axis to be Year and y axis to be average success rate, to get the average launch success trend.
 # Plot a line chart with x axis to be the extracted year and y axis to be the success rate
 df.groupby(("Date"))["Class"].mean().plot(kind= 'bar', legend= 'reverse')
 
-## By now, you should obtain some preliminary insights about how each important variable would affect the success rate, we will select the features that will be used in success prediction in the future module.
+##By now, you should obtain some preliminary insights about how each important variable would affect the success rate, we will select the features that will be used in success prediction in the future module.
 features = df[['FlightNumber', 'PayloadMass', 'Orbit', 'LaunchSite', 'Flights', 'GridFins', 'Reused', 'Legs', 'LandingPad', 'Block', 'ReusedCount', 'Serial']]
 features.head()
 
-## Create dummy variables to categorical columns
-# HINT: Use get_dummies() function on the categorical columns
+##Create dummy variables to categorical columns
+#HINT: Use get_dummies() function on the categorical columns
 features_one_hot = pd.get_dummies(features["Orbits","LaunchSite","LandingPad","Serial"], axis = ["Orbits","LaunchSite","LandingPad","Serial"])
 
-## Cast all numeric columns to float64
-# HINT: use astype function
+##Cast all numeric columns to float64
+#HINT: use astype function
 features_one_hot = float(features_one_hot.astype)
 
 features_one_hot.to_csv('dataset_part_3.csv', index=False)
 ```
 
+
+### Build a Dashboard Application with Plotly Dash
+
+```
+# Import required libraries
+import pandas as pd
+import dash
+from dash import html
+from dash import dcc
+from dash.dependencies import Input, Output
+import plotly.express as px
+import wget
+```
+
+```
+# Uncomment the following cell to get download skeleton app and dataset:
+
+# spacex_dataset = wget.download("https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/spacex_launch_dash.csv")
+# spacex_dash_app = wget.download("https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/labs/module_3/spacex
+```
+
+```
+# Read the airline data into pandas dataframe
+spacex_df = pd.read_csv("spacex_launch_dash.csv")
+max_payload = spacex_df['Payload Mass (kg)'].max()
+min_payload = spacex_df['Payload Mass (kg)'].min()
+
+# Create a dash application
+app = dash.Dash(__name__)
+server = app.server
+
+# Create an app layout
+
+app.layout = html.Div(children=[html.H1('SpaceX Launch Records Dashboard',
+                                        style={'textAlign': 'center', 'color': '#503D36',
+                                               'font-size': 40}),
+                                html.P("Created by Molo Munyansanga", style={'textAlign': 'center'}),
+                                
+                                # TASK 1: Add a dropdown list to enable Launch Site selection
+                                # The default select value is for ALL sites
+                                # dcc.Dropdown(id='site-dropdown',...)
+                                dcc.Dropdown(id='site-dropdown',
+                                                options=[
+                                                    {'label': 'All Sites', 'value': 'ALL'},
+                                                    {'label': 'CCAFS LC-40', 'value': 'CCAFS LC-40'},
+                                                    {'label': 'VAFB SLC-4E', 'value': 'VAFB SLC-4E'},
+                                                    {'label': 'KSC LC-39A', 'value': 'KSC LC-39A'},
+                                                    {'label': 'CCAFS SLC-40', 'value': 'CCAFS SLC-40'},
+                                                ],
+                                                value='ALL',
+                                                placeholder="Select a Launch Site here",
+                                                searchable=True
+                                                ),
+
+                                html.Br(),
+
+                                # Task 2: Add a pie chart to show the total successful launches count for all sites
+                                # If a specific launch site was selected,
+                                # show the Success vs. Failed counts for the site
+                                html.Div(dcc.Graph(id='success-pie-chart')),
+                                html.Br(),
+
+                                # Add payload mass slider text
+                                html.P(id="slider-text"),
+                                
+                                # TASK 3: Add a slider to select payload range
+                                # dcc.RangeSlider(id='payload-slider',...)
+                                dcc.RangeSlider(id='payload-slider',
+                                                min=0, max=10000, step=1000,
+                                                marks={0: '0', 2500: '2500', 5000: '5000', 7500: '7500',
+                                                       10000: '10000'},
+                                                value=[min_payload, max_payload]),
+
+                                # TASK 4: Add a scatter chart to show the correlation between payload and launch success
+                                html.Div(dcc.Graph(id='success-payload-scatter-chart'))
+                                ])
+
+
+# TASK 2:
+# Add a callback function for `site-dropdown` as input, `success-pie-chart` as output
+@app.callback(Output(component_id='success-pie-chart', component_property='figure'),
+              Input(component_id='site-dropdown', component_property='value'))
+def get_pie_chart(entered_site):
+    filtered_df = spacex_df
+    if entered_site == 'ALL':
+        fig = px.pie(filtered_df, values='class', names='Launch Site', title='Total Successful Launches By Site')
+        return fig
+    else:
+        # return the outcomes piechart for a selected site
+        site_chosen = entered_site
+        mask = filtered_df['Launch Site'] == site_chosen
+        fig = px.pie(filtered_df[mask], names='class',
+                     title=f'Total Successful Launches For Site {site_chosen}')
+        return fig
+
+
+# TASK 4:
+# Add a callback function for `site-dropdown` and `payload-slider` as inputs, `success-payload-scatter-chart` as output
+@app.callback(Output(component_id='success-payload-scatter-chart', component_property='figure'),
+              Input(component_id='site-dropdown', component_property='value'),
+              [Input(component_id='payload-slider', component_property='value')])
+def get_scatter_chart(entered_site, mass):
+
+    # filter masses from payload slider
+    mass_1 = spacex_df['Payload Mass (kg)'] >= float(mass[0])
+    mass_2 = spacex_df['Payload Mass (kg)'] <= float(mass[1])
+    
+    filtered_df = spacex_df[mass_1][mass_2]
+    
+    if entered_site == 'ALL':
+
+        fig = px.scatter(filtered_df, x='Payload Mass (kg)', y='class', color="Booster Version Category",
+                         title=f'Correlation between Payload Mass and Launch Success for All Sites for Payload Mass(kg) Between {mass[0]} and {mass[1]}')
+        return fig
+    else:
+        
+        # return the outcomes scatter chart for a selected site
+        site_chosen = entered_site
+        mask = filtered_df['Launch Site'] == site_chosen
+        fig = px.scatter(filtered_df[mask], x='Payload Mass (kg)', y='class', color="Booster Version Category",
+                         title=f'Correlation between Payload Mass and Launch Success for Site {site_chosen}')
+        return fig
+    
+    
+#function to return payload_mass success_rate
+@app.callback(Output('slider-text', 'children'),
+              [Input(component_id='payload-slider', component_property='value')])
+def get_success_rate(mass):
+
+    # filter masses from payload slider
+    mass_1 = spacex_df['Payload Mass (kg)'] >= float(mass[0])
+    mass_2 = spacex_df['Payload Mass (kg)'] <= float(mass[1])
+    
+    filtered_df = spacex_df[mass_1][mass_2]
+    
+    # find success rate
+    rate = (filtered_df['class'].value_counts().loc[1])/filtered_df['class'].value_counts().sum() * 100
+    rate = 'Payload range (Kg): ' + str(round(rate, 2)) + '% Success Rate'
+    
+    return rate
+    
+    
+# Run the app
+if __name__ == '__main__':
+    app.run_server()
+```
+
+
+
+### Assignment: Machine Learning Prediction
+
+```
+# Pandas is a software library written for the Python programming language for data manipulation and analysis.
+import pandas as pd
+# NumPy is a library for the Python programming language, adding support for large, multi-dimensional arrays and matrices, along with a large collection of high-level mathematical functions to operate on these arrays
+import numpy as np
+# Matplotlib is a plotting library for python and pyplot gives us a MatLab like plotting framework. We will use this in our plotter function to plot data.
+import matplotlib.pyplot as plt
+#Seaborn is a Python data visualization library based on matplotlib. It provides a high-level interface for drawing attractive and informative statistical graphics
+import seaborn as sns
+# Preprocessing allows us to standarsize our data
+from sklearn import preprocessing
+# Allows us to split our data into training and testing data
+from sklearn.model_selection import train_test_split
+# Allows us to test parameters of classification algorithms and find the best one
+from sklearn.model_selection import GridSearchCV
+# Logistic Regression classification algorithm
+from sklearn.linear_model import LogisticRegression
+# Support Vector Machine classification algorithm
+from sklearn.svm import SVC
+# Decision Tree classification algorithm
+from sklearn.tree import DecisionTreeClassifier
+# K Nearest Neighbors classification algorithm
+from sklearn.neighbors import KNeighborsClassifier
+```
+
+```
+def plot_confusion_matrix(y,y_predict):
+    "this function plots the confusion matrix"
+    from sklearn.metrics import confusion_matrix
+
+    cm = confusion_matrix(y, y_predict)
+    ax= plt.subplot()
+    sns.heatmap(cm, annot=True, ax = ax); #annot=True to annotate cells
+    ax.set_xlabel('Predicted labels')
+    ax.set_ylabel('True labels')
+    ax.set_title('Confusion Matrix'); 
+    ax.xaxis.set_ticklabels(['did not land', 'land']); ax.yaxis.set_ticklabels(['did not land', 'landed'])
+```
+
+```
+# data = pd.read_csv("https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/dataset_part_2.csv")
+
+# If you were unable to complete the previous lab correctly you can uncomment and load this csv
+
+data = pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DS0701EN-SkillsNetwork/api/dataset_part_2.csv')
+
+data.head()
+data
+```
+
+```
+# X = pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/dataset_part_3.csv')
+
+# If you were unable to complete the previous lab correctly you can uncomment and load this csv
+
+X = pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DS0701EN-SkillsNetwork/api/dataset_part_3.csv')
+
+X.head(100)
+```
+
+```
+y = data['Class'].to_numpy()
+```
+
+```
+# students get this 
+transform = preprocessing.StandardScaler()
+x = transform.fit(X).transform(X)
+```
+
+```
+# split data into training and test sets
+X_train, X_test, Y_train, Y_test = train_test_split( x, y, test_size=0.2, random_state=2)
+print ('Train set:', X_train.shape,  Y_train.shape)
+print ('Test set:', X_test.shape,  Y_test.shape)
+```
+
+```
+Y_test.shape
+```
+
+```
+parameters ={'C':[0.01,0.1,1],
+             'penalty':['l2'],
+             'solver':['lbfgs']}             
+```
+
+```
+parameters ={"C":[0.01,0.1,1],'penalty':['l2'], 'solver':['lbfgs']}# l1 lasso l2 ridge
+
+lr=LogisticRegression() # Logistic regression object
+
+logreg_cv = GridSearchCV(estimator=lr, cv=10, param_grid=parameters).fit(X_train, Y_train) # GridSearchCV object that is fitted
+```
+
+```
+print("tuned hpyerparameters :(best parameters) ",logreg_cv.best_params_)
+print("accuracy :",logreg_cv.best_score_)
+```
+
+```
+logreg_score = logreg_cv.score(X_test, Y_test)
+print("score :",logreg_score)
+```
+
+```
+yhat=logreg_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+```
+
+```
+parameters = {'kernel':('linear', 'rbf','poly','rbf', 'sigmoid'),
+              'C': np.logspace(-3, 3, 5),
+              'gamma':np.logspace(-3, 3, 5)}
+
+svm = SVC() # Support vector machine object
+
+svm_cv = GridSearchCV(estimator=svm, cv=10, param_grid=parameters).fit(X_train, Y_train) # GridSearchCV object that is fitted
+```
+
+
+```
+print("tuned hpyerparameters :(best parameters) ",svm_cv.best_params_)
+print("accuracy :",svm_cv.best_score_)
+```
+
+```
+svm_cv_score = svm_cv.score(X_test, Y_test)
+
+print("score :",svm_cv_score)
+```
+
+```
+yhat=svm_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+```
+
+```
+parameters = {'criterion': ['gini', 'entropy'],
+     'splitter': ['best', 'random'],
+     'max_depth': [2*n for n in range(1,10)],
+     'max_features': ['auto', 'sqrt'],
+     'min_samples_leaf': [1, 2, 4],
+     'min_samples_split': [2, 5, 10]}
+
+tree = DecisionTreeClassifier() # decision tree classifier object
+
+tree_cv = GridSearchCV(estimator=tree, cv=10, param_grid=parameters).fit(X_train, Y_train) # GridSearchCV object that is fitted
+```
+
+```
+print("tuned hpyerparameters :(best parameters) ",tree_cv.best_params_)
+print("accuracy :",tree_cv.best_score_)
+```
+
+```
+tree_cv_score = tree_cv.score(X_test, Y_test)
+
+print("score :",tree_cv_score)
+```
+
+```
+yhat = svm_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+```
+
+```
+parameters = {'n_neighbors': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+              'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
+              'p': [1,2]}
+
+KNN = KNeighborsClassifier() #  k nearest neighbors object
+
+knn_cv = GridSearchCV(estimator=KNN, cv=10, param_grid=parameters).fit(X_train, Y_train) # GridSearchCV object that is fitted
+```
+
+```
+print("tuned hpyerparameters :(best parameters) ",knn_cv.best_params_)
+print("accuracy :",knn_cv.best_score_)
+```
+
+```
+knn_cv_score = knn_cv.score(X_test, Y_test)
+print("score :",knn_cv_score)
+```
+
+```
+yhat = knn_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+```
+
+```
+# Created a dataframe showing accuracy scores:
+accuracy = [svm_cv_score, logreg_score, knn_cv_score, tree_cv_score]
+accuracy = [i * 100 for i in accuracy]
+
+method = ['Support Vector Machine', 'Logistic Regression', 'K Nearest Neighbour', 'Decision Tree']
+models = {'ML Method':method, 'Accuracy Score (%)':accuracy}
+
+ML_df = pd.DataFrame(models)
+ML_df
+```
+
+```
+# Plot bar chart
+ML_df.plot(kind='bar', x='ML Method', y='Accuracy Score (%)', ylabel='Accuracy (%)', figsize=(10,10), 
+           legend=None, rot= 1, title='Machine Learning Method Accuracy');
+```
+
+```
+# Using Logistic regression and best parameters we received earlier:
+# 'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'
+LR = LogisticRegression(C=0.01, penalty='l2', solver='lbfgs').fit(X_train, Y_train)
+```
+
+```
+# prediction
+yhat = LR.predict(X_test)
+```
+
+```
+plt.figure(figsize=(8,7))
+plot_confusion_matrix(Y_test,yhat)
+```

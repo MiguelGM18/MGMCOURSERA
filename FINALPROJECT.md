@@ -7,6 +7,9 @@
 ### *** Assignment: Exploring and Preparing Data
 ### *** Build a Dashboard Application with Plotly Dash
 ### *** Assignment: Machine Learning Prediction
+### Launch Sites Locations Analysis with Folium
+### Assignment: SQL Notebook for Peer Assignment
+
 
 ### Web Scrapping
 ## Import requests
@@ -944,4 +947,435 @@ yhat = LR.predict(X_test)
 ```
 plt.figure(figsize=(8,7))
 plot_confusion_matrix(Y_test,yhat)
+```
+
+
+
+### Launch Sites Locations Analysis with Folium
+
+```
+import folium
+import wget
+import pandas as pd
+import numpy as np
+```
+
+```
+# Import folium MarkerCluster plugin
+from folium.plugins import MarkerCluster
+# Import folium MousePosition plugin
+from folium.plugins import MousePosition
+# Import folium DivIcon plugin
+from folium.features import DivIcon
+```
+
+```
+# Download and read the `spacex_launch_geo.csv`
+spacex_csv_file = wget.download('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/spacex_launch_geo.csv')
+spacex_df=pd.read_csv(spacex_csv_file)
+```
+
+```
+# Select relevant sub-columns: `Launch Site`, `Lat(Latitude)`, `Long(Longitude)`, `class`
+spacex_df = spacex_df[['Launch Site', 'Lat', 'Long', 'class']]
+launch_sites_df = spacex_df.groupby(['Launch Site'], as_index=False).first()
+launch_sites_df = launch_sites_df[['Launch Site', 'Lat', 'Long']]
+launch_sites_df
+```
+
+```
+# Start location is NASA Johnson Space Center
+nasa_coordinate = [29.559684888503615, -100]
+site_map = folium.Map(location=nasa_coordinate, zoom_start=4.5)
+```
+
+```
+# Create a blue circle at NASA Johnson Space Center's coordinate with a popup label showing its name
+circle = folium.Circle(nasa_coordinate, radius=10, color='#0000FF', fill=True).add_child(folium.Popup('NASA Johnson Space Center'))
+# Create a blue circle at NASA Johnson Space Center's coordinate with a icon showing its name
+marker = folium.map.Marker(
+    nasa_coordinate,
+    # Create an icon as a text label
+    icon=DivIcon(
+        icon_size=(20,20),
+        icon_anchor=(0,0),
+        html='<div style="font-size: 12; color:#000000;"><b>%s</b></div>' % 'NASA JSC',
+        )
+    )
+site_map.add_child(circle)
+site_map.add_child(marker)
+```
+
+```
+col = launch_sites_df.columns
+
+# save coordinates in lists
+sites = [v for k,v in launch_sites_df[col[0]].items()]
+lat = [v for k,v in launch_sites_df[col[1]].items()]
+long = [v for k,v in launch_sites_df[col[2]].items()]
+circles = []
+
+for i in range(len(sites)):
+    coordinate = [lat[i], long[i]]
+    # circle objects
+    circle = folium.Circle(coordinate, radius=100, color='#000000', fill=True).add_child(folium.Popup(f'{sites[i]}'))
+    
+    # marker objects
+    marker = folium.map.Marker(coordinate, icon=DivIcon(icon_size=(20,20),icon_anchor=(0,0), 
+                                               html='<div style="font-size: 12; color:#d35400;"><b>%s</b></div>' % f'{sites[i]}', ))
+    site_map.add_child(circle)
+    site_map.add_child(marker)
+    
+site_map
+```
+
+```
+spacex_df.tail(10)
+marker_cluster = MarkerCluster()
+```
+
+```
+# Function to assign color to launch outcome
+def assign_marker_color(launch_outcome):
+    if launch_outcome == 1:
+        return 'green'
+    else:
+        return 'red'
+    
+spacex_df['marker_color'] = spacex_df['class'].apply(assign_marker_color)
+spacex_df.tail(10)
+```
+
+```
+# Add marker_cluster to current site_map
+site_map.add_child(marker_cluster)
+
+# for each row in spacex_df data frame
+# create a Marker object with its coordinate
+# and customize the Marker's icon property to indicate if this launch was successed or failed, 
+# e.g., icon=folium.Icon(color='white', icon_color=row['marker_color']
+for index, record in spacex_df.iterrows():
+    
+    label = record[0]
+    lat = record[1]
+    long = record[2]
+    row_color = record[4]
+    
+    # TODO: Create and add a Marker cluster to the site map
+    marker = folium.Marker(
+        location = [lat, long],
+#         popup = label,
+        icon=folium.Icon(color='white', icon_color=row_color)
+    )
+    marker_cluster.add_child(marker)
+
+site_map.fit_bounds([[28.60577, -80.68102], [28.52813, -80.52168]]) # Insert resting coordinates for map
+site_map
+```
+
+```
+# Add Mouse Position to get the coordinate (Lat, Long) for a mouse over on the map
+formatter = "function(num) {return L.Util.formatNum(num, 5);};"
+mouse_position = MousePosition(
+    position='topright',
+    separator=' Long: ',
+    empty_string='NaN',
+    lng_first=False,
+    num_digits=20,
+    prefix='Lat:',
+    lat_formatter=formatter,
+    lng_formatter=formatter,
+)
+
+site_map.add_child(mouse_position)
+site_map.fit_bounds([[42.81152, -130.3418], [13.32548, -64.33594]])
+site_map
+```
+
+```
+from math import sin, cos, sqrt, atan2, radians
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    # approximate radius of earth in km
+    R = 6373.0
+
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+    return distance
+```
+
+```
+# find coordinate of the closet coastline
+# e.g.,: Lat: 28.56367  Lon: -80.57163
+# distance_coastline = calculate_distance(launch_site_lat, launch_site_lon, coastline_lat, coastline_lon)
+
+coastline_distances = []
+
+lat = [v for k,v in launch_sites_df[col[1]].items()]
+long = [v for k,v in launch_sites_df[col[2]].items()]
+
+coast_lat = [28.56225, 28.56334, 28.57339, 34.63284]
+coast_long = [-80.5678, -80.56797, -80.60693, -120.62634]
+
+
+for i in range(len(coast_long)):
+    coastline_distances.append(calculate_distance(lat[i], long[i], coast_lat[i], coast_long[i]))
+```
+
+```
+# Create and add a folium.Marker on your selected closest coastline point on the map
+# Display the distance between coastline point and launch site using the icon property 
+
+for i in range(len(coast_long)):
+    
+    # nearest coastline coordinates
+    coordinate = [coast_lat[i], coast_long[i]]
+    
+    # marker              
+    distance_marker = folium.Marker(
+       coordinate,
+       icon=DivIcon(
+           icon_size=(20,20),
+           icon_anchor=(0,0),
+           html='<div style="font-size: 12; color:#000080;"><b>%s</b></div>' % "{:10.2f} KM".format(coastline_distances[i]),
+           )
+       )
+    
+    site_map.add_child(distance_marker)
+```
+
+```
+# Create a `folium.PolyLine` object using the coastline coordinates and launch site coordinate
+
+for i in range(len(lat)):
+
+    # coordinate
+    coordinates = [[lat[i], long[i]], [coast_lat[i], coast_long[i]]]
+
+    lines=folium.PolyLine(coordinates, weight=0.5)
+    site_map.add_child(lines)
+
+site_map.fit_bounds([[28.56798, -80.58229], [28.55791, -80.56224]])
+site_map
+```
+
+```
+# enter coordinates
+locations = []
+locs_distances = []
+
+railway_lat = [28.57211, 28.57211, 28.57307, 34.6338]
+railway_long = [-80.58527, -80.58527, -80.65403, -120.62478]
+
+highway_lat = [28.56278, 28.56278, 28.57359, 34.70472]
+highway_long = [-80.57075, -80.57075, -80.6553, -120.56937]
+
+city_lat = [28.39804, 28.39804, 28.60984, 34.63716]
+city_long = [-80.60257, -80.60257, -80.80376, -120.45616]
+
+for i in range(len(city_lat)):
+    
+    # save coordinates in a list object
+    locs = [railway_lat[i], railway_long[i], '#BA55D3'], [highway_lat[i], highway_long[i], '#2E8B57'], [city_lat[i], city_long[i], '#DC143C']
+    locations.append([locs])
+    
+    # save distances(km) in another list
+    dist = [(calculate_distance(lat[i], long[i], railway_lat[i], railway_long[i])), 
+    (calculate_distance(lat[i], long[i], highway_lat[i], highway_long[i])),
+    (calculate_distance(lat[i], long[i], city_lat[i], city_long[i]))]
+    
+    locs_distances.append(dist)
+```
+
+```
+# Create a marker with distance to a closest city, railway, highway, etc.
+
+# loop through the location items for each launch site
+for i in range(len(locations)):
+    
+    # site_items 
+    site = locations[i]
+    
+    # site coordinates
+    site_coordinates = [lat[i], long[i]]
+    
+    # loop through location item
+    for i in range(len(site)):
+    
+        # nearest coordinates
+        coordinates = site[i]
+        
+        # distance
+        distances = locs_distances[i]
+        
+        # loop through each distance
+        for i in range(len(distances)):
+            
+            # individual coordinate
+            coordinate = coordinates[i][:2]
+            
+            # individual distance
+            distance = distances[i]
+
+#             print(coordinate)
+#             print(distance)
+#             break
+            
+            # marker              
+            distance_marker = folium.Marker(
+               coordinate,
+               icon=DivIcon(
+                   icon_size=(20,20),
+                   icon_anchor=(0,0),
+                   html=f'<div style="font-size: 5; color:{coordinates[i][2]};"><b>%s</b></div>' % "{:10.2f} KM".format(distance),
+                   )
+               )
+
+            
+            # Draw a line between the marker to the launch site
+            
+            # coordinates from launch site to marker
+            new_coordinates = [site_coordinates, coordinate]
+
+            line = folium.PolyLine(new_coordinates, weight=0.5)
+
+            site_map.add_child(line)
+            site_map.add_child(distance_marker)
+        
+
+site_map.fit_bounds([[34.64242, -120.63443], [34.6229, -120.59301]])
+site_map
+```
+
+
+### Assignment: SQL Notebook for Peer Assignment
+
+
+```
+# !pip install sqlalchemy==1.3.9
+# !pip install ibm_db_sa
+# !pip install ipython-sql
+```
+
+```
+import sqlite3
+import sql
+import pandas as pd
+```
+
+```
+%load_ext sql
+```
+
+```
+%sql sqlite:///SpaceEx.sqlite
+```
+
+```
+# %sql ibm_db_sa://
+```
+
+```
+%%sql
+
+SELECT Launch_Site, COUNT(DISTINCT(Launch_Site))
+from Spacex
+GROUP BY Launch_Site
+```
+
+```
+%%sql
+
+SELECT *
+from Spacex
+where Launch_Site like 'CCA%'
+Limit 5
+```
+
+```
+%%sql
+
+select Customer, SUM(PAYLOAD_MASS__KG_) as Total_Payload_Mass
+FROM Spacex
+GROUP BY Customer
+HAVING Customer LIKE 'NASA%'
+ORDER BY Total_Payload_Mass DESC
+```
+
+```
+%%sql
+
+select AVG(PAYLOAD_MASS__KG_) as Average_Payload_Mass, Booster_Version
+FROM Spacex
+where Booster_Version == 'F9 v1.1'
+```
+
+```
+%%sql
+
+select Date, Landing_Outcome
+FROM Spacex
+where Landing_Outcome = 'Success (ground pad)'
+limit 1
+```
+
+```
+%%sql
+
+select Booster_Version, PAYLOAD_MASS__KG_, Landing_Outcome
+FROM Spacex
+where Landing_Outcome = 'Success (drone ship)'
+    and PAYLOAD_MASS__KG_ > 4000
+    and PAYLOAD_MASS__KG_ < 6000
+```
+
+```
+%%sql
+
+
+select Mission_Outcome, COUNT(Mission_Outcome) as Outcomes
+from Spacex
+GROUP BY(Mission_Outcome)
+```
+
+```
+%%sql
+
+select Booster_Version, PAYLOAD_MASS__KG_
+FROM Spacex
+where PAYLOAD_MASS__KG_ = (
+            select MAX(PAYLOAD_MASS__KG_)
+            from Spacex
+);
+```
+
+```
+%%sql
+
+SELECT Date, Launch_Site, Booster_Version, Landing_Outcome
+from Spacex
+where Date LIKE '%2015'
+    and Landing_Outcome LIKE 'Failure%'
+```
+
+```
+%%sql
+
+
+SELECT substr(Date,7,4) || '-' || substr(Date,4,2) || '-' || substr(Date,1,2) || substr(Date,11) as _date_, 
+Landing_Outcome, COUNT(Landing_Outcome) as Outcomes
+from Spacex
+GROUP BY(Landing_Outcome)
+Having (Date(_date_) > '2010-06-04' and Date(_date_) < '2017-03-20')
+ORDER BY DATE(_date_) DESC
 ```

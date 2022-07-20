@@ -1,4 +1,6 @@
 ### MIGUEL GONZALEZ
+
+### Web Scrapping
 ## Import requests
 
 ```
@@ -231,5 +233,332 @@ df=pd.DataFrame(launch_dict)
 
 df.dropna(axis=1, how='all', inplace=True)
 
-df.to_csv('spacex_web_scraped.csv', index=False)
+df.to_csv('spacex_web_scraped_part.csv', index=False)
 ```
+
+
+
+### Lab 1: Collecting the data
+
+```
+# Requests allows us to make HTTP requests which we will use to get data from an API
+import requests
+# Pandas is a software library written for the Python programming language for data manipulation and analysis.
+import pandas as pd
+# NumPy is a library for the Python programming language, adding support for large, multi-dimensional arrays and matrices, along with a large collection of high-level mathematical functions to operate on these arrays
+import numpy as np
+# Datetime is a library that allows us to represent dates
+import datetime
+
+# Setting this option will print all collumns of a dataframe
+pd.set_option('display.max_columns', None)
+# Setting this option will print all of the data in a feature
+pd.set_option('display.max_colwidth', None)
+```
+
+```
+# Takes the dataset and uses the rocket column to call the API and append the data to the list
+def getBoosterVersion(data):
+    for x in data['rocket']:
+        response = requests.get("https://api.spacexdata.com/v4/rockets/"+str(x)).json()
+        BoosterVersion.append(response['name'])
+```
+
+```
+# Takes the dataset and uses the launchpad column to call the API and append the data to the list
+def getLaunchSite(data):
+    for x in data['launchpad']:
+        response = requests.get("https://api.spacexdata.com/v4/launchpads/"+str(x)).json()
+        Longitude.append(response['longitude'])
+        Latitude.append(response['latitude'])
+        LaunchSite.append(response['name'])
+```
+
+```
+# Takes the dataset and uses the payloads column to call the API and append the data to the lists
+def getPayloadData(data):
+    for load in data['payloads']:
+        response = requests.get("https://api.spacexdata.com/v4/payloads/"+load).json()
+        PayloadMass.append(response['mass_kg'])
+        Orbit.append(response['orbit'])
+```
+
+```
+# Takes the dataset and uses the cores column to call the API and append the data to the lists
+def getCoreData(data):
+    for core in data['cores']:
+            if core['core'] != None:
+                response = requests.get("https://api.spacexdata.com/v4/cores/"+core['core']).json()
+                Block.append(response['block'])
+                ReusedCount.append(response['reuse_count'])
+                Serial.append(response['serial'])
+            else:
+                Block.append(None)
+                ReusedCount.append(None)
+                Serial.append(None)
+            Outcome.append(str(core['landing_success'])+' '+str(core['landing_type']))
+            Flights.append(core['flight'])
+            GridFins.append(core['gridfins'])
+            Reused.append(core['reused'])
+            Legs.append(core['legs'])
+            LandingPad.append(core['landpad'])
+```
+
+```
+spacex_url="https://api.spacexdata.com/v4/launches/past"
+response = requests.get(spacex_url)
+print(response.content)
+```
+
+```
+static_json_url='https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/datasets/API_call_spacex_api.json'
+```
+
+```
+response.status_code
+```
+Now we decode the response content as a Json using .json() and turn it into a Pandas dataframe using .json_normalize()
+```
+# Use json_normalize meethod to convert the json result into a dataframe
+file = response.json()
+df = pd.json_normalize(file)
+df.head()
+```
+
+```
+# Get the head of the dataframe
+data = df.copy()
+# Lets take a subset of our dataframe keeping only the features we want and the flight number, and date_utc.
+data = data[['rocket', 'payloads', 'launchpad', 'cores', 'flight_number', 'date_utc']]
+
+# We will remove rows with multiple cores because those are falcon rockets with 2 extra rocket boosters and rows that have multiple payloads in a single rocket.
+data = data[data['cores'].map(len)==1]
+data = data[data['payloads'].map(len)==1]
+
+# Since payloads and cores are lists of size 1 we will also extract the single value in the list and replace the feature.
+data['cores'] = data['cores'].map(lambda x : x[0])
+data['payloads'] = data['payloads'].map(lambda x : x[0])
+
+# We also want to convert the date_utc to a datetime datatype and then extracting the date leaving the time
+data['date'] = pd.to_datetime(data['date_utc']).dt.date
+
+# Using the date we will restrict the dates of the launches
+data = data[data['date'] <= datetime.date(2020, 11, 13)]
+```
+
+```
+#Global variables 
+BoosterVersion = []
+PayloadMass = []
+Orbit = []
+LaunchSite = []
+Outcome = []
+Flights = []
+GridFins = []
+Reused = []
+Legs = []
+LandingPad = []
+Block = []
+ReusedCount = []
+Serial = []
+Longitude = []
+Latitude = []
+```
+
+```
+# Call getBoosterVersion
+getBoosterVersion(data)
+```
+
+```
+BoosterVersion[0:5]
+```
+
+```
+# Call getLaunchSite
+getLaunchSite(data)
+```
+
+```
+# Call getPayloadData
+getPayloadData(data)
+```
+
+```
+# Call getCoreData
+getCoreData(data)
+```
+
+```
+launch_dict = {'FlightNumber': list(data['flight_number']),
+'Date': list(data['date']),
+'BoosterVersion':BoosterVersion,
+'PayloadMass':PayloadMass,
+'Orbit':Orbit,
+'LaunchSite':LaunchSite,
+'Outcome':Outcome,
+'Flights':Flights,
+'GridFins':GridFins,
+'Reused':Reused,
+'Legs':Legs,
+'LandingPad':LandingPad,
+'Block':Block,
+'ReusedCount':ReusedCount,
+'Serial':Serial,
+'Longitude': Longitude,
+'Latitude': Latitude}
+```
+
+```
+# Create a data from launch_dict
+new_df = pd.DataFrame(launch_dict)
+```
+
+```
+# Show the head of the dataframe
+new_df.head()
+```
+
+```
+# Hint data['BoosterVersion']!='Falcon 1'
+mask = new_df['BoosterVersion']!='Falcon 1'
+data_falcon9 = new_df[mask].copy()
+```
+
+```
+data_falcon9.loc[:,'FlightNumber'] = list(range(1, data_falcon9.shape[0]+1))
+data_falcon9
+```
+
+```
+data_falcon9.isnull().sum()
+```
+
+```
+# Calculate the mean value of PayloadMass column
+mean = data_falcon9['PayloadMass'].mean()
+
+# Replace the np.nan values with its mean value
+data_falcon9['PayloadMass'].fillna(mean, inplace=True)
+```
+
+```
+data_falcon9.to_csv('dataset_part_1.csv', index=False)
+```
+
+
+
+### Lab 2: Data wrangling
+
+``` 
+df=pd.read_csv("space_x_web_scraped_part_1")
+df.head(10) 
+df.isnull().sum()/df.count()*100
+df.dtypes
+#Use the method value_counts() on the column LaunchSite to determine the number of launches on each site:
+df['LaunchSite'].value_counts()
+``` 
+
+##Each launch aims to an dedicated orbit, and here are some common orbit types:
+
+* LEO: Low Earth orbit (LEO)is an Earth-centred orbit with an altitude of 2,000 km (1,200 mi) or less (approximately one-third of the radius of Earth),[1] or with at least 11.25 periods per day (an orbital period of 128 minutes or less) and an eccentricity less than 0.25.[2] Most of the manmade objects in outer space are in LEO [1].
+
+* VLEO: Very Low Earth Orbits (VLEO) can be defined as the orbits with a mean altitude below 450 km. Operating in these orbits can provide a number of benefits to Earth observation spacecraft as the spacecraft operates closer to the observation[2].
+
+* GTO A geosynchronous orbit is a high Earth orbit that allows satellites to match Earth's rotation. Located at 22,236 miles (35,786 kilometers) above Earth's equator, this position is a valuable spot for monitoring weather, communications and surveillance. Because the satellite orbits at the same speed that the Earth is turning, the satellite seems to stay in place over a single longitude, though it may drift north to south,” NASA wrote on its Earth Observatory website [3] .
+
+* SSO (or SO): It is a Sun-synchronous orbit also called a heliosynchronous orbit is a nearly polar orbit around a planet, in which the satellite passes over any given point of the planet's surface at the same local mean solar time [4] .
+
+* ES-L1 :At the Lagrange points the gravitational forces of the two large bodies cancel out in such a way that a small object placed in orbit there is in equilibrium relative to the center of mass of the large bodies. L1 is one such point between the sun and the earth [5] .
+
+* HEO A highly elliptical orbit, is an elliptic orbit with high eccentricity, usually referring to one around Earth [6].
+
+* ISS A modular space station (habitable artificial satellite) in low Earth orbit. It is a multinational collaborative project between five participating space agencies: NASA (United States), Roscosmos (Russia), JAXA (Japan), ESA (Europe), and CSA (Canada) [7]
+
+* MEO Geocentric orbits ranging in altitude from 2,000 km (1,200 mi) to just below geosynchronous orbit at 35,786 kilometers (22,236 mi). Also known as an intermediate circular orbit. These are "most commonly at 20,200 kilometers (12,600 mi), or 20,650 kilometers (12,830 mi), with an orbital period of 12 hours [8]
+
+* HEO Geocentric orbits above the altitude of geosynchronous orbit (35,786 km or 22,236 mi) [9]
+
+* GEO It is a circular geosynchronous orbit 35,786 kilometres (22,236 miles) above Earth's equator and following the direction of Earth's rotation [10]
+
+* PO It is one type of satellites in which a satellite passes above or nearly above both poles of the body being orbited (usually a planet such as the Earth [11]
+
+some are shown in the following plot:
+
+[![Orbits.png](https://i.postimg.cc/k5Vj93bg/Orbits.png)](https://postimg.cc/CZgCH273)
+
+True Ocean means the mission outcome was successfully landed to a specific region of the ocean while False Ocean means the mission outcome was unsuccessfully landed to a specific region of the ocean. True RTLS means the mission outcome was successfully landed to a ground pad False RTLS means the mission outcome was unsuccessfully landed to a ground pad.True ASDS means the mission outcome was successfully landed to a drone ship False ASDS means the mission outcome was unsuccessfully landed to a drone ship. None ASDS and None None these represent a failure to land.
+
+```
+for i,outcome in enumerate(landing_outcomes.keys()):
+    print(i,outcome)
+    
+#We create a set of outcomes where the second stage did not land successfully:
+    bad_outcomes=set(landing_outcomes.keys()[[1,3,5,6,7]])
+    
+#Create a landing outcome label from Outcome column
+landing_class=[0 if outcome in bad_outcomes else 1 for outcome in df['Outcome']]
+df['Class']=landing_class
+df[['Class']].head(8)
+df.head(5)
+
+#We can use the following line of code to determine the success rate:
+df["Class"].mean()
+df.to_csv("dataset_part_2.csv", index=False)
+```
+
+
+### Assignment: Exploring and Preparing Data
+
+# First, let's try to see how the FlightNumber (indicating the continuous launch attempts.) and Payload variables would affect the launch outcome.
+
+# We can plot out the FlightNumber vs. PayloadMassand overlay the outcome of the launch. We see that as the flight number increases, the first stage is more likely to land successfully. The payload mass is also important; it seems the more massive the payload, the less likely the first stage will return.
+
+```
+sns.catplot(y="PayloadMass", x="FlightNumber", hue="Class", data=df, aspect = 5)
+plt.xlabel("Flight Number",fontsize=20)
+plt.ylabel("Pay load Mass (kg)",fontsize=20)
+plt.show()
+```
+
+# We see that different launch sites have different success rates. CCAFS LC-40, has a success rate of 60 %, while KSC LC-39A and VAFB SLC 4E has a success rate of 77%.
+
+```
+# Plot a scatter point chart with x axis to be Flight Number and y axis to be the launch site, and hue to be the class value
+sns.catplot(y="LaunchSite", x="FlightNumber", hue="Class", data=df, aspect = 5)
+
+##  Visualize the relationship between Flight Number and Launch Site
+# Plot a scatter point chart with x axis to be Pay Load Mass (kg) and y axis to be the launch site, and hue to be the class value
+sns.catplot(y="LaunchSite", x="PayloadMass", hue="Class", data=df, aspect = 5)
+
+## Next, we want to visually check if there are any relationship between success rate and orbit type.
+# HINT use groupby method on Orbit column and get the mean of Class column
+df.groupby("Orbit")["Class"].mean().plot(kind= 'bar', legend= 'reverse')
+
+## For each orbit, we want to see if there is any relationship between FlightNumber and Orbit type.
+# Plot a scatter point chart with x axis to be FlightNumber and y axis to be the Orbit, and hue to be the class value
+sns.catplot(y="FlightNumber", x="Orbit", hue="Class", data=df, aspect = 5)
+
+## Visualize the relationship between Payload and Orbit type
+# Plot a scatter point chart with x axis to be Payload and y axis to be the Orbit, and hue to be the class value
+sns.catplot(y="PayloadMass", x="Orbit", hue="Class", data=df, aspect = 5)
+
+## You can plot a line chart with x axis to be Year and y axis to be average success rate, to get the average launch success trend.
+# Plot a line chart with x axis to be the extracted year and y axis to be the success rate
+df.groupby(("Date"))["Class"].mean().plot(kind= 'bar', legend= 'reverse')
+
+## By now, you should obtain some preliminary insights about how each important variable would affect the success rate, we will select the features that will be used in success prediction in the future module.
+features = df[['FlightNumber', 'PayloadMass', 'Orbit', 'LaunchSite', 'Flights', 'GridFins', 'Reused', 'Legs', 'LandingPad', 'Block', 'ReusedCount', 'Serial']]
+features.head()
+
+## Create dummy variables to categorical columns
+# HINT: Use get_dummies() function on the categorical columns
+features_one_hot = pd.get_dummies(features["Orbits","LaunchSite","LandingPad","Serial"], axis = ["Orbits","LaunchSite","LandingPad","Serial"])
+
+## Cast all numeric columns to float64
+# HINT: use astype function
+features_one_hot = float(features_one_hot.astype)
+
+features_one_hot.to_csv('dataset_part_3.csv', index=False)
+```
+
